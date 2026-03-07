@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Steuer App</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --beige-50:  #fdf8f0;
+      --beige-100: #f5ead8;
+      --beige-200: #ecdcc0;
+      --beige-300: #d9c4a0;
+      --brown-400: #a08060;
+      --brown-500: #7a5c3a;
+      --brown-600: #5c3d1e;
+      --green-500: #4d8a52;
+      --green-100: #e8f2e8;
+      --red-500:   #c0504a;
+      --red-100:   #fce8e8;
+      --shadow-sm: 0 1px 3px rgba(90,60,30,0.10);
+      --shadow-md: 0 4px 12px rgba(90,60,30,0.14);
+      --shadow-lg: 0 8px 24px rgba(90,60,30,0.18);
+      --radius:    14px;
+      --radius-sm: 9px;
+    }
+
+    html, body { height: 100%; background: var(--beige-50); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: var(--brown-600); }
+    #root { height: 100%; }
+
+    .app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--beige-50); position: relative; }
+
+    /* header */
+    .header { background: var(--brown-500); color: #fff; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-md); }
+    .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
+    .header-sub   { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+
+    /* tab bar */
+    .tabbar { display: flex; background: #fff; border-top: 1px solid var(--beige-200); padding: 6px 8px calc(6px + env(safe-area-inset-bottom, 0px)); position: sticky; bottom: 0; z-index: 10; box-shadow: 0 -2px 8px rgba(90,60,30,0.08); }
+    .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; border: none; background: none; cursor: pointer; border-radius: var(--radius-sm); transition: background 0.12s; }
+    .tab:active { background: var(--beige-100); }
+    .tab-icon  { font-size: 22px; line-height: 1; }
+    .tab-label { font-size: 10px; font-weight: 600; color: var(--brown-400); letter-spacing: 0.3px; text-transform: uppercase; }
+    .tab.active .tab-label { color: var(--brown-500); }
+    .tab-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--brown-500); }
+
+    /* scroll content */
+    .content { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* stat cards */
+    .stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+    .stat-card { background: #fff; border-radius: var(--radius); padding: 14px 12px; box-shadow: var(--shadow-sm); border: 1px solid var(--beige-200); }
+    .stat-card.accent { background: var(--brown-500); border-color: var(--brown-500); }
+    .stat-card.accent .stat-value,
+    .stat-card.accent .stat-label { color: #fff; }
+    .stat-icon  { font-size: 18px; margin-bottom: 4px; }
+    .stat-value { font-size: 26px; font-weight: 800; color: var(--brown-600); line-height: 1; }
+    .stat-label { font-size: 10px; font-weight: 600; color: var(--brown-400); text-transform: uppercase; letter-spacing: 0.4px; margin-top: 3px; }
+
+    /* section header */
+    .section-header { display: flex; justify-content: space-between; align-items: center; }
+    .section-title  { font-size: 15px; font-weight: 700; color: var(--brown-600); }
+    .section-count  { font-size: 12px; color: var(--brown-400); font-weight: 600; }
+
+    /* list cards */
+    .card { background: #fff; border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--beige-200); display: flex; align-items: center; gap: 13px; }
+    .card-icon { width: 44px; height: 44px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .card-icon.trip     { background: var(--beige-100); }
+    .card-icon.purchase { background: var(--green-100); }
+    .card-body  { flex: 1; min-width: 0; }
+    .card-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-sub   { font-size: 12px; color: var(--brown-400); margin-top: 2px; }
+    .card-right { text-align: right; flex-shrink: 0; }
+    .card-amount { font-size: 15px; font-weight: 700; color: var(--green-500); }
+    .card-date   { font-size: 11px; color: var(--brown-400); margin-top: 2px; }
+    .badge { display: inline-block; background: var(--beige-100); color: var(--brown-500); font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 4px; }
+    .badge + .badge { margin-left: 4px; }
+
+    /* empty */
+    .empty { text-align: center; padding: 48px 24px; }
+    .empty-icon  { font-size: 52px; margin-bottom: 12px; }
+    .empty-title { font-size: 16px; font-weight: 700; color: var(--brown-500); }
+    .empty-sub   { font-size: 13px; color: var(--brown-400); margin-top: 5px; line-height: 1.5; }
+
+    /* FAB */
+    .fab { position: fixed; bottom: calc(74px + env(safe-area-inset-bottom, 0px)); right: calc(50% - 220px); width: 56px; height: 56px; border-radius: 50%; background: var(--brown-500); color: #fff; border: none; font-size: 30px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-lg); z-index: 9; transition: transform 0.12s, background 0.12s; line-height: 1; padding-bottom: 2px; }
+    @media (max-width: 480px) { .fab { right: 20px; } }
+    .fab:active { transform: scale(0.92); background: var(--brown-600); }
+
+    /* modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(50,30,10,0.48); z-index: 100; display: flex; align-items: flex-end; justify-content: center; }
+    .modal { background: var(--beige-50); border-radius: var(--radius) var(--radius) 0 0; width: 100%; max-width: 480px; padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); max-height: 92dvh; overflow-y: auto; box-shadow: var(--shadow-lg); }
+    .modal-handle { width: 36px; height: 4px; background: var(--beige-300); border-radius: 2px; margin: 12px auto 16px; }
+    .modal-title { font-size: 18px; font-weight: 800; color: var(--brown-600); padding: 0 20px 14px; border-bottom: 1px solid var(--beige-200); }
+
+    /* form */
+    .form { padding: 16px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 11px; font-weight: 700; color: var(--brown-500); text-transform: uppercase; letter-spacing: 0.5px; }
+    .field input, .field select {
+      background: #fff; border: 1.5px solid var(--beige-200); border-radius: var(--radius-sm);
+      padding: 12px 14px; font-size: 16px; color: var(--brown-600); width: 100%;
+      -webkit-appearance: none; appearance: none; outline: none;
+      transition: border-color 0.15s; font-family: inherit;
+    }
+    .field input:focus, .field select:focus { border-color: var(--brown-400); }
+    .field select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a5c3a' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px;
+    }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-primary { background: var(--brown-500); color: #fff; border: none; border-radius: var(--radius-sm); padding: 15px; font-size: 16px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 2px; transition: background 0.15s; font-family: inherit; }
+    .btn-primary:active { background: var(--brown-600); }
+
+    /* type picker */
+    .type-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px 20px 8px; }
+    .type-btn { padding: 18px 12px; border-radius: var(--radius); border: 2px solid var(--beige-200); background: #fff; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 7px; transition: all 0.15s; }
+    .type-btn:active { border-color: var(--brown-400); background: var(--beige-100); }
+    .type-btn-icon  { font-size: 32px; }
+    .type-btn-label { font-size: 14px; font-weight: 700; color: var(--brown-600); }
+
+    /* delete */
+    .delete-btn { background: var(--red-100); border: none; color: var(--red-500); padding: 8px 11px; border-radius: var(--radius-sm); font-size: 17px; cursor: pointer; flex-shrink: 0; transition: background 0.12s; }
+    .delete-btn:active { background: #f5cfcf; }
+
+    /* welcome */
+    .welcome { background: linear-gradient(135deg, var(--brown-500) 0%, var(--brown-400) 100%); border-radius: var(--radius); padding: 20px; color: #fff; box-shadow: var(--shadow-md); }
+    .welcome-tag { font-size: 11px; font-weight: 700; background: rgba(255,255,255,0.22); display: inline-block; padding: 3px 10px; border-radius: 20px; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .welcome h2  { font-size: 20px; font-weight: 800; }
+    .welcome p   { font-size: 13px; opacity: 0.82; margin-top: 3px; }
+
+    /* summary */
+    .summary-card { background: #fff; border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow-sm); border: 1px solid var(--beige-200); }
+    .summary-row  { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--beige-100); font-size: 14px; }
+    .summary-row:last-child { border-bottom: none; font-weight: 700; font-size: 15px; color: var(--brown-600); }
+    .summary-row span:first-child { color: var(--brown-400); }
+
+    .total-banner { background: #fff; border-radius: var(--radius); padding: 14px 18px; text-align: center; box-shadow: var(--shadow-sm); border: 1px solid var(--beige-200); }
+    .total-label  { font-size: 11px; font-weight: 700; color: var(--brown-400); text-transform: uppercase; letter-spacing: 0.5px; }
+    .total-amount { font-size: 28px; font-weight: 800; color: var(--green-500); margin-top: 2px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+/* ── storage hook ── */
+function useLocalStorage(key, init) {
+  const [val, setVal] = useState(() => {
+    try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : init; }
+    catch { return init; }
+  });
+  useEffect(() => { localStorage.setItem(key, JSON.stringify(val)); }, [key, val]);
+  return [val, setVal];
+}
+
+/* ── utils ── */
+const uid = () => Math.random().toString(36).slice(2) + Date.now().toString(36);
+const today = () => new Date().toISOString().slice(0, 10);
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}.${m}.${y}`;
+}
+
+function daysBetween(start, end) {
+  if (!start || !end) return 1;
+  const diff = Math.round((new Date(end) - new Date(start)) / 86400000);
+  return Math.max(1, diff + 1);
+}
+
+function eur(amount) {
+  return new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(amount || 0);
+}
+
+const TRANSPORT = { Flug: '✈️', Zug: '🚂', Auto: '🚗', Bus: '🚌' };
+const CATEGORY  = { Bücher: '📚', Technik: '💻', Bürobedarf: '🖊️', Sonstiges: '📦' };
+
+const COUNTRY_FLAGS = {
+  'Deutschland': '🇩🇪', 'Österreich': '🇦🇹', 'Schweiz': '🇨🇭',
+  'Frankreich': '🇫🇷', 'Italien': '🇮🇹', 'Spanien': '🇪🇸',
+  'Portugal': '🇵🇹', 'Niederlande': '🇳🇱', 'Belgien': '🇧🇪',
+  'Luxemburg': '🇱🇺', 'Polen': '🇵🇱', 'Tschechien': '🇨🇿',
+  'Slowakei': '🇸🇰', 'Ungarn': '🇭🇺', 'Rumänien': '🇷🇴',
+  'Kroatien': '🇭🇷', 'Slowenien': '🇸🇮', 'Serbien': '🇷🇸',
+  'Griechenland': '🇬🇷', 'Türkei': '🇹🇷', 'Schweden': '🇸🇪',
+  'Norwegen': '🇳🇴', 'Dänemark': '🇩🇰', 'Finnland': '🇫🇮',
+  'Irland': '🇮🇪', 'Großbritannien': '🇬🇧', 'England': '🇬🇧',
+  'USA': '🇺🇸', 'Vereinigte Staaten': '🇺🇸', 'Kanada': '🇨🇦',
+  'Mexiko': '🇲🇽', 'Brasilien': '🇧🇷', 'Argentinien': '🇦🇷',
+  'Japan': '🇯🇵', 'China': '🇨🇳', 'Südkorea': '🇰🇷',
+  'Indien': '🇮🇳', 'Australien': '🇦🇺', 'Singapur': '🇸🇬',
+  'Russland': '🇷🇺', 'Israel': '🇮🇱', 'Marokko': '🇲🇦',
+  'Südafrika': '🇿🇦', 'Ägypten': '🇪🇬', 'VAE': '🇦🇪',
+  'Vereinigte Arabische Emirate': '🇦🇪', 'Saudi-Arabien': '🇸🇦',
+};
+
+function countryFlag(country) {
+  if (!country) return '🌍';
+  return COUNTRY_FLAGS[country] || '🌍';
+}
+
+/* ── Modal ── */
+function Modal({ defaultType, onClose, onSave }) {
+  const [type, setType] = useState(defaultType || null);
+  const t0 = today();
+  const [trip, setTrip] = useState({ destination: '', country: 'Deutschland', purpose: '', startDate: t0, endDate: t0, transport: 'Zug' });
+  const [purch, setPurch] = useState({ name: '', amount: '', category: 'Technik', date: t0 });
+
+  function save() {
+    if (type === 'trip') {
+      if (!trip.destination.trim()) return alert('Bitte Stadt angeben.');
+      onSave({ ...trip, type: 'trip', id: uid() });
+    } else {
+      if (!purch.name.trim() || !purch.amount) return alert('Bitte Bezeichnung und Betrag angeben.');
+      onSave({ ...purch, type: 'purchase', id: uid(), amount: parseFloat(String(purch.amount).replace(',', '.')) });
+    }
+    onClose();
+  }
+
+  function setT(k, v) { setTrip(p => ({ ...p, [k]: v })); }
+  function setP(k, v) { setPurch(p => ({ ...p, [k]: v })); }
+
+  return (
+    <div className="modal-overlay" onMouseDown={e => e.target === e.currentTarget && onClose()}>
+      <div className="modal">
+        <div className="modal-handle" />
+        <div className="modal-title">{type ? (type === 'trip' ? '✈️ Neue Dienstreise' : '🛍️ Neue Anschaffung') : 'Neuer Eintrag'}</div>
+
+        {!type && (
+          <div className="type-picker">
+            <button className="type-btn" onClick={() => setType('trip')}>
+              <span className="type-btn-icon">✈️</span>
+              <span className="type-btn-label">Dienstreise</span>
+            </button>
+            <button className="type-btn" onClick={() => setType('purchase')}>
+              <span className="type-btn-icon">🛍️</span>
+              <span className="type-btn-label">Anschaffung</span>
+            </button>
+          </div>
+        )}
+
+        {type === 'trip' && (
+          <div className="form">
+            <div className="field">
+              <label>Stadt *</label>
+              <input autoFocus placeholder="z.B. München" value={trip.destination} onChange={e => setT('destination', e.target.value)} />
+            </div>
+            <div className="field">
+              <label>Land</label>
+              <input placeholder="Deutschland" value={trip.country} onChange={e => setT('country', e.target.value)} />
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Abreise</label>
+                <input type="date" value={trip.startDate} onChange={e => setT('startDate', e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Rückkehr</label>
+                <input type="date" value={trip.endDate} min={trip.startDate} onChange={e => setT('endDate', e.target.value)} />
+              </div>
+            </div>
+            <button className="btn-primary" onClick={save}>Speichern</button>
+          </div>
+        )}
+
+        {type === 'purchase' && (
+          <div className="form">
+            <div className="field">
+              <label>Bezeichnung *</label>
+              <input autoFocus placeholder="z.B. Fachbuch, Laptop" value={purch.name} onChange={e => setP('name', e.target.value)} />
+            </div>
+            <div className="field-row">
+              <div className="field">
+                <label>Betrag (€) *</label>
+                <input type="number" inputMode="decimal" step="0.01" min="0" placeholder="0,00" value={purch.amount} onChange={e => setP('amount', e.target.value)} />
+              </div>
+              <div className="field">
+                <label>Datum</label>
+                <input type="date" value={purch.date} onChange={e => setP('date', e.target.value)} />
+              </div>
+            </div>
+            <div className="field">
+              <label>Kategorie</label>
+              <select value={purch.category} onChange={e => setP('category', e.target.value)}>
+                {Object.keys(CATEGORY).map(k => <option key={k} value={k}>{CATEGORY[k]} {k}</option>)}
+              </select>
+            </div>
+            <button className="btn-primary" onClick={save}>Speichern</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── HomeScreen ── */
+function HomeScreen({ trips, purchases }) {
+  const totalDays  = trips.reduce((s, t) => s + daysBetween(t.startDate, t.endDate), 0);
+  const totalSpent = purchases.reduce((s, p) => s + (p.amount || 0), 0);
+  const byCat = purchases.reduce((acc, p) => { acc[p.category] = (acc[p.category] || 0) + p.amount; return acc; }, {});
+
+  const recentTrips = [...trips].sort((a,b) => b.startDate.localeCompare(a.startDate));
+  const recentPurch = [...purchases].sort((a,b) => b.date.localeCompare(a.date)).slice(0,3);
+
+  return (<>
+    <div className="welcome">
+      <div className="welcome-tag">Steuerjahr 2026</div>
+      <h2>Guten Tag!</h2>
+      <p>Hier ist Ihre aktuelle Übersicht.</p>
+    </div>
+
+    <div className="stat-grid">
+      <div className="stat-card accent">
+        <div className="stat-icon">✈️</div>
+        <div className="stat-value">{trips.length}</div>
+        <div className="stat-label">Reisen</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-icon">📅</div>
+        <div className="stat-value">{totalDays}</div>
+        <div className="stat-label">Tage</div>
+      </div>
+      <div className="stat-card">
+        <div className="stat-icon">🛍️</div>
+        <div className="stat-value">{purchases.length}</div>
+        <div className="stat-label">Käufe</div>
+      </div>
+    </div>
+
+    {purchases.length > 0 && (
+      <div className="summary-card">
+        <div className="section-title" style={{marginBottom:10}}>Ausgaben nach Kategorie</div>
+        {Object.entries(byCat).map(([cat, amt]) => (
+          <div className="summary-row" key={cat}>
+            <span>{CATEGORY[cat]} {cat}</span>
+            <span style={{color:'var(--brown-600)',fontWeight:600}}>{eur(amt)}</span>
+          </div>
+        ))}
+        <div className="summary-row">
+          <span>Gesamt</span>
+          <span style={{color:'var(--green-500)'}}>{eur(totalSpent)}</span>
+        </div>
+      </div>
+    )}
+
+    {recentTrips.length > 0 && <>
+      <div className="section-header">
+        <span className="section-title">Letzte Dienstreisen</span>
+      </div>
+      {recentTrips.map(t => (
+        <div className="card" key={t.id}>
+          <div className="card-icon trip" style={{fontSize:28}}>{countryFlag(t.country)}</div>
+          <div className="card-body">
+            <div className="card-title">{t.destination}{t.country && t.country !== 'Deutschland' ? `, ${t.country}` : ''}</div>
+            <div style={{marginTop:4}}>
+              <span className="badge">{daysBetween(t.startDate,t.endDate)} {daysBetween(t.startDate,t.endDate)===1?'Tag':'Tage'}</span>
+            </div>
+          </div>
+          <div className="card-right">
+            <div className="card-date">{formatDate(t.startDate)}</div>
+          </div>
+        </div>
+      ))}
+    </>}
+
+    {recentPurch.length > 0 && <>
+      <div className="section-header">
+        <span className="section-title">Letzte Anschaffungen</span>
+      </div>
+      {recentPurch.map(p => (
+        <div className="card" key={p.id}>
+          <div className="card-icon purchase">{CATEGORY[p.category]}</div>
+          <div className="card-body">
+            <div className="card-title">{p.name}</div>
+            <div style={{marginTop:4}}><span className="badge">{p.category}</span></div>
+          </div>
+          <div className="card-right">
+            <div className="card-amount">{eur(p.amount)}</div>
+            <div className="card-date">{formatDate(p.date)}</div>
+          </div>
+        </div>
+      ))}
+    </>}
+
+    {trips.length === 0 && purchases.length === 0 && (
+      <div className="empty">
+        <div className="empty-icon">📋</div>
+        <div className="empty-title">Noch keine Einträge</div>
+        <div className="empty-sub">Tippen Sie auf + um Ihre erste Dienstreise oder Anschaffung hinzuzufügen.</div>
+      </div>
+    )}
+  </>);
+}
+
+/* ── TripsScreen ── */
+function TripsScreen({ trips, onDelete }) {
+  const sorted = [...trips].sort((a,b) => b.startDate.localeCompare(a.startDate));
+  return (<>
+    <div className="section-header">
+      <span className="section-title">Dienstreisen</span>
+      <span className="section-count">{trips.length} {trips.length === 1 ? 'Eintrag' : 'Einträge'}</span>
+    </div>
+    {sorted.length === 0 && (
+      <div className="empty">
+        <div className="empty-icon">✈️</div>
+        <div className="empty-title">Keine Dienstreisen</div>
+        <div className="empty-sub">Fügen Sie Ihre erste Geschäftsreise hinzu.</div>
+      </div>
+    )}
+    {sorted.map(t => (
+      <div className="card" key={t.id}>
+        <div className="card-icon trip" style={{fontSize:28}}>{countryFlag(t.country)}</div>
+        <div className="card-body">
+          <div className="card-title">{t.destination}{t.country && t.country !== 'Deutschland' ? `, ${t.country}` : ''}</div>
+          <div style={{marginTop:4}}>
+            <span className="badge">{daysBetween(t.startDate,t.endDate)} {daysBetween(t.startDate,t.endDate)===1?'Tag':'Tage'}</span>
+          </div>
+          <div style={{fontSize:11,color:'var(--brown-400)',marginTop:4}}>
+            {formatDate(t.startDate)}{t.endDate !== t.startDate ? ` – ${formatDate(t.endDate)}` : ''}
+          </div>
+        </div>
+        <button className="delete-btn" onClick={() => onDelete(t.id,'trip')} title="Löschen">🗑</button>
+      </div>
+    ))}
+  </>);
+}
+
+/* ── PurchasesScreen ── */
+function PurchasesScreen({ purchases, onDelete }) {
+  const sorted = [...purchases].sort((a,b) => b.date.localeCompare(a.date));
+  const total  = purchases.reduce((s,p) => s + (p.amount||0), 0);
+  return (<>
+    <div className="section-header">
+      <span className="section-title">Anschaffungen</span>
+      <span className="section-count">{purchases.length} {purchases.length === 1 ? 'Eintrag' : 'Einträge'}</span>
+    </div>
+    {purchases.length > 0 && (
+      <div className="total-banner">
+        <div className="total-label">Gesamtausgaben</div>
+        <div className="total-amount">{eur(total)}</div>
+      </div>
+    )}
+    {sorted.length === 0 && (
+      <div className="empty">
+        <div className="empty-icon">🛍️</div>
+        <div className="empty-title">Keine Anschaffungen</div>
+        <div className="empty-sub">Fügen Sie Ihre erste Anschaffung hinzu.</div>
+      </div>
+    )}
+    {sorted.map(p => (
+      <div className="card" key={p.id}>
+        <div className="card-icon purchase">{CATEGORY[p.category]}</div>
+        <div className="card-body">
+          <div className="card-title">{p.name}</div>
+          <div style={{marginTop:4}}><span className="badge">{p.category}</span></div>
+        </div>
+        <div className="card-right" style={{marginRight:8}}>
+          <div className="card-amount">{eur(p.amount)}</div>
+          <div className="card-date">{formatDate(p.date)}</div>
+        </div>
+        <button className="delete-btn" onClick={() => onDelete(p.id,'purchase')} title="Löschen">🗑</button>
+      </div>
+    ))}
+  </>);
+}
+
+/* ── App ── */
+function App() {
+  const [trips,     setTrips]     = useLocalStorage('steuer_trips',     []);
+  const [purchases, setPurchases] = useLocalStorage('steuer_purchases', []);
+  const [tab,       setTab]       = useState('home');
+  const [modal,     setModal]     = useState(null);
+
+  const fabType = { home: null, trips: 'trip', purchases: 'purchase' };
+
+  function handleSave(entry) {
+    if (entry.type === 'trip')     setTrips(ts => [entry, ...ts]);
+    else                           setPurchases(ps => [entry, ...ps]);
+  }
+
+  function handleDelete(id, type) {
+    if (!confirm('Eintrag wirklich löschen?')) return;
+    if (type === 'trip') setTrips(ts => ts.filter(t => t.id !== id));
+    else                 setPurchases(ps => ps.filter(p => p.id !== id));
+  }
+
+  return (
+    <div className="app">
+      <div className="header">
+        <div className="header-title">Steuer App</div>
+        <div className="header-sub">Steuerjahr 2026</div>
+      </div>
+
+      <div className="content">
+        {tab === 'home'      && <HomeScreen trips={trips} purchases={purchases} />}
+        {tab === 'trips'     && <TripsScreen trips={trips} onDelete={handleDelete} />}
+        {tab === 'purchases' && <PurchasesScreen purchases={purchases} onDelete={handleDelete} />}
+      </div>
+
+      <button className="fab" onClick={() => setModal({ type: fabType[tab] })}>+</button>
+
+      <div className="tabbar">
+        {[
+          { id: 'home',      icon: '🏠', label: 'Übersicht' },
+          { id: 'trips',     icon: '✈️',  label: 'Dienstreisen' },
+          { id: 'purchases', icon: '🛍️', label: 'Anschaffungen' },
+        ].map(t => (
+          <button key={t.id} className={`tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>
+            <span className="tab-icon">{t.icon}</span>
+            <span className="tab-label">{t.label}</span>
+            {tab === t.id && <span className="tab-dot" />}
+          </button>
+        ))}
+      </div>
+
+      {modal && (
+        <Modal
+          defaultType={modal.type}
+          onClose={() => setModal(null)}
+          onSave={entry => { handleSave(entry); setModal(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm cache clean --force 2>&1 | tail -3 && npm install 2>&1 | tail -5)",
+      "Bash(which bun && bun install 2>&1 | tail -5)"
+    ]
+  }
+}
