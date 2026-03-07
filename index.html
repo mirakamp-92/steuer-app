@@ -4,6 +4,26 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Steuer App</title>
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#7a5c3a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Steuer" />
+  <link rel="apple-touch-icon" href="/icon.svg" />
+  <script>
+    // iOS requires a PNG for apple-touch-icon; convert SVG via canvas at runtime
+    (function () {
+      var img = new Image();
+      img.onload = function () {
+        var c = document.createElement('canvas');
+        c.width = c.height = 180;
+        c.getContext('2d').drawImage(img, 0, 0, 180, 180);
+        var link = document.querySelector('link[rel="apple-touch-icon"]');
+        if (link) link.href = c.toDataURL('image/png');
+      };
+      img.src = '/icon.svg';
+    })();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,7 +52,7 @@
     .app { display: flex; flex-direction: column; height: 100dvh; max-width: 480px; margin: 0 auto; background: var(--beige-50); position: relative; }
 
     /* header */
-    .header { background: var(--brown-500); color: #fff; padding: 16px 20px 14px; position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-md); }
+    .header { background: var(--brown-500); color: #fff; padding: 16px 20px 14px; padding-top: calc(16px + env(safe-area-inset-top, 0px)); position: sticky; top: 0; z-index: 10; box-shadow: var(--shadow-md); }
     .header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.3px; }
     .header-sub   { font-size: 12px; opacity: 0.75; margin-top: 2px; }
 
